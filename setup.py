@@ -39,5 +39,5 @@ setup(
     author='Edouard Klein',
     install_requires=install_requires,
     dependency_links=dependency_links,
-    author_email='edouardklein -at- gmail.com'
+    author_email='myfirstnamemylastname@mailproviderthatstartswithagfromgoogle.whyshouldibespammed.letmeinputhateveriwantinthisfieldffs.com'
 )

@@ -22,7 +22,7 @@ Or clone the repo:
 
 ### Documentation
 
-Read the documentation https://daemux.readthedocs.org/ to understand how to use daemux.
+Read the documentation https://daemux.readthedocs.io/ to understand how to use daemux.
 
 ### In the cloned repo
 
