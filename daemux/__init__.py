@@ -29,6 +29,8 @@ import libtmux
 import subprocess
 import time
 
+__version__ = '0.0.2'
+
 
 class Daemon:
     """Handle tmux session, window and pane to control the daemon."""
