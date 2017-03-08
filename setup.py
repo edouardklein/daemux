@@ -11,7 +11,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 
-install_requires = ['sphinx', 'doctest', 'flake8', 'libtmux']
+install_requires = ['sphinx', 'flake8', 'libtmux']
 dependency_links = []
 
 setup(
