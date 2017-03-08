@@ -17,17 +17,20 @@ dependency_links = []
 setup(
     name='daemux',
     version=__version__,
-    description='Daemux uses tmux to let you start, stop, restart and check daemons.',
+    description='Daemux uses tmux to let you start, stop, restart'
+    ' and check daemons.',
     long_description=long_description,
     url='https://github.com/edouardklein/daemux',
-    download_url='https://github.com/edouardklein/daemux/tarball/' + __version__,
+    download_url='https://github.com/edouardklein/daemux/tarball/' +
+    __version__,
     license='AGPL',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
-        'License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)',
+        'License :: OSI Approved :: GNU Affero General Public'
+        ' License v3 or later (AGPLv3+)',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: System :: Monitoring',
@@ -39,5 +42,6 @@ setup(
     author='Edouard Klein',
     install_requires=install_requires,
     dependency_links=dependency_links,
-    author_email='myfirstnamemylastname@mailproviderthatstartswithagfromgoogle.whyshouldibespammed.letmeinputhateveriwantinthisfieldffs.com'
+    author_email='myfirstnamemylastname@mailproviderthatstartswithagfromgoogle'
+    '.whyshouldibespammed.letmeinputhateveriwantinthisfieldffs.com'
 )
