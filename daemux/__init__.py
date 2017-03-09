@@ -29,7 +29,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.6'
+__version__ = '0.0.8'
 
 
 class Daemon:
@@ -101,6 +101,13 @@ class Daemon:
         return subprocess.check_output('ps -t {}'
                                        .format(self.pane['pane_tty']),
                                        shell=True).decode('utf8')
+
+    def pane_output(self):
+        '''Return the contents of the pane.'''
+        # FIXME: -32000 should be chaged when tmux v2 becomes widly
+        # available to just '-', meaning 'all history'.
+        return '\n'.join(self.pane.cmd('capture-pane', '-p',
+                                       '-S', '-32000').stdout)
 
     def status(self):
         '''Return the putative status of the daemon.
