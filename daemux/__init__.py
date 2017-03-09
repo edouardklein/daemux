@@ -29,7 +29,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 
 
 class Daemon:
@@ -152,7 +152,7 @@ class Daemon:
 
 
 def start(cmd):
-    '''Start a new daemon.'''
+    '''Start a new daemon and return it.'''
     answer = Daemon(cmd)
     answer.start()
     return answer

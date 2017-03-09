@@ -7,4 +7,5 @@ Daemux
 ==================================
 
 .. automodule:: daemux
+   :members:
 
