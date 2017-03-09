@@ -1,10 +1,14 @@
-# Daemux
+#######
+Daemux
+#######
 
-## Overview
+Overview
+---------
 
 Daemux uses tmux to let you start, stop, restart and check daemons.
 
-## Installation
+Installation
+==============
 
 To install use pip:
 
@@ -18,15 +22,19 @@ Or clone the repo:
     
     
 
-## Usage
+Usage
+=======
 
-### Documentation
+Documentation
+++++++++++++++
 
 Read the documentation https://daemux.readthedocs.io/ to understand how to use daemux.
 
-### In the cloned repo
+In the cloned repo
++++++++++++++++++++++
 
-#### Helper targets
+Helper targets
+>>>>>>>>>>>>>>>>
 
 To build the documentation, run:
 
@@ -40,7 +48,8 @@ To check the code's superficial cleanliness run:
 
     $ make lint
 
-#### Dev cycle
+Dev cycle
+>>>>>>>>>>>
 
 One branch derived from latest master per new feature or bug fix.
 

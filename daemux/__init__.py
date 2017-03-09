@@ -29,7 +29,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.2'
+__version__ = '0.0.5'
 
 
 class Daemon:
