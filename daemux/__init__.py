@@ -29,7 +29,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.8'
+__version__ = '0.0.9'
 
 
 class Daemon:
@@ -129,7 +129,7 @@ class Daemon:
         """Relaunch the daemon by sending an arrow up and enter."""
         self.pane.cmd('send-keys', 'Up')
         self.pane.enter()
-        self.wait_for_running(timeout)
+        self.wait_for_state('running', timeout)
 
     def start(self, timeout=10):
         """Start the daemon."""
@@ -141,21 +141,29 @@ class Daemon:
             return self.restart()
 
         self.pane.send_keys(self.cmd)
-        self.wait_for_running(timeout)
+        self.wait_for_state('running', timeout)
 
-    def wait_for_running(self, timeout):
-        # Wait for timeout or for status to change before returning
+    def wait_for_state(self, state, timeout, action=None):
+        '''Wait for timeout or for status to change to state before returning.
+
+        If action is specified, it is called every second while status is not
+        at state.
+        '''
         start = time.time()
-        while self.status() == 'ready':
+        while self.status() != state:
+            if action is not None:
+                action()
             time.sleep(1)
             if time.time() - start > timeout:
-                raise RuntimeError("Could not get the daemon to launch."
+                raise RuntimeError("Could not get the daemon to switch to "
+                                   "state {}."
                                    " Current output is:\n{}"
-                                   .format(self.pane_output()))
+                                   .format(state, self.pane_output()))
 
     def stop(self):
         '''Send a Ctrl-C to the pane the daemon is running on.'''
         self.pane.cmd('send-keys', 'C-c')
+        self.wait_for_state('ready', lambda: self.pane.cmd('send-keys', 'C-c'))
 
 
 def start(cmd):
