@@ -5,6 +5,8 @@ tasks, and check these tasks' health by hand, relaunch them, etc. by
 attaching to the corresponding pane in tmux.
 
 >>> import daemux
+>>> # session, window, and pane are implicitely deduced if
+>>> # not explicitely specified
 >>> yes = daemux.start('yes')
 >>> yes.status()
 'running'
@@ -29,7 +31,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.9'
+__version__ = '0.0.10'
 
 
 class Daemon:
@@ -169,9 +171,12 @@ class Daemon:
         self.wait_for_state('ready', lambda: self.pane.cmd('send-keys', 'C-c'))
 
 
-def start(cmd):
-    '''Start a new daemon and return it.'''
-    answer = Daemon(cmd)
+def start(*args):
+    '''Start a new daemon and return it.
+
+    The daemon is created with the arguments given to start.
+    See :py:func:`Daemon.__init__`.'''
+    answer = Daemon(*args)
     answer.start()
     return answer
 
