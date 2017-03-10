@@ -39,13 +39,16 @@ class Daemon:
         '''Create or attach to a session/window/pane for command cmd.
 
         Args:
-            cmd: The command to run to start the daemon
+            cmd: The command to run to start the daemon.
+
             session: The name of the tmux session in which to
                 run the daemon. Derived from `cmd` if None.
                 Will be created if it does not already exists.
+
             window: The name of the tmux window (inside of `session`)
                 in which to run the daemon. Derived frm `cmd` if None.
                 Will be created if it does not already exists.
+
             pane: The number of the pane (inside of `window`) in which
                 to run the daemon. A new pane will be created if None.
                 As many panes as necessary will be created so that
@@ -161,7 +164,7 @@ class Daemon:
                                    .format(state, self.pane_output()))
 
     def stop(self):
-        '''Send a Ctrl-C to the pane the daemon is running on.'''
+        '''Send Ctrl-Cs to the pane the daemon is running on until it stops.'''
         self.pane.cmd('send-keys', 'C-c')
         self.wait_for_state('ready', lambda: self.pane.cmd('send-keys', 'C-c'))
 

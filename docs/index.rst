@@ -8,4 +8,5 @@ Daemux
 
 .. automodule:: daemux
    :members:
+   :special-members:
 
