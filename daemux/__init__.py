@@ -31,7 +31,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.10'
+__version__ = '0.0.11'
 
 
 class Daemon:
@@ -171,12 +171,18 @@ class Daemon:
         self.wait_for_state('ready', lambda: self.pane.cmd('send-keys', 'C-c'))
 
 
-def start(*args):
+def start(cmd, **kwargs):
     '''Start a new daemon and return it.
 
     The daemon is created with the arguments given to start.
-    See :py:func:`Daemon.__init__`.'''
-    answer = Daemon(*args)
+    See :py:func:`Daemon.__init__` for details.
+
+    One can give an explicit tmux session/window/pane hierarchy:
+    >>> import daemux
+    >>> d = daemux.start(cmd='yes', session='yes', window='yes', pane=-1)
+    >>> d.stop()
+    '''
+    answer = Daemon(cmd, **kwargs)
     answer.start()
     return answer
 
