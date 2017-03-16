@@ -31,7 +31,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.12'
+__version__ = '0.0.13'
 
 
 class Daemon:
@@ -132,6 +132,7 @@ class Daemon:
 
     def restart(self, timeout=10):
         """Relaunch the daemon by sending an arrow up and enter."""
+        self.stop()
         self.pane.cmd('send-keys', 'Up')
         self.pane.enter()
         self.wait_for_state('running', timeout)
