@@ -31,13 +31,13 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.13'
+__version__ = '0.0.14'
 
 
 class Daemon:
     """Handle tmux session, window and pane to control the daemon."""
 
-    def __init__(self, cmd, session=None, window=None, pane=None):
+    def __init__(self, cmd, session=None, window=None, pane=None, layout=None):
         '''Create or attach to a session/window/pane for command cmd.
 
         Args:
@@ -56,6 +56,12 @@ class Daemon:
                 As many panes as necessary will be created so that
                 pane number `pane` exists. Python indexes work, so
                 asking for pane e.g. -1 makes sense.
+
+            layout: The layout to apply after each pane creation. Defaults
+                to None, in which case no layout is applied. Creating too many
+                panes will eventually make tmux fail, complaining that there
+                is not enough space left to create a new pane. Using the e.g.
+                'tiled' layout is a good way to delay this problem.
         '''
         self.cmd = cmd
         if window is not None and session is None:
@@ -90,10 +96,14 @@ class Daemon:
 
         if pane is None:  # Creation of a new pane
             self.pane = self.window.split_window()
+            if layout is not None:
+                self.window.select_layout(layout)
         else:
             while max(-pane - 1, pane) >= len(self.window.list_panes()):
                 # Create as many panes as necessary to honor request
                 self.window.split_window()
+                if layout is not None:
+                    self.window.select_layout(layout)
             self.pane = self.window.list_panes()[pane]
 
         if cmd is not None:
