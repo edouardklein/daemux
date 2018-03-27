@@ -31,7 +31,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.14'
+__version__ = '0.0.15'
 
 
 class Daemon:
@@ -179,7 +179,8 @@ class Daemon:
     def stop(self):
         '''Send Ctrl-Cs to the pane the daemon is running on until it stops.'''
         self.pane.cmd('send-keys', 'C-c')
-        self.wait_for_state('ready', action=lambda: self.pane.cmd('send-keys', 'C-c'))
+        self.wait_for_state('ready',
+                            action=lambda: self.pane.cmd('send-keys', 'C-c'))
 
 
 def start(cmd, **kwargs):
@@ -189,6 +190,7 @@ def start(cmd, **kwargs):
     See :py:func:`Daemon.__init__` for details.
 
     One can give an explicit tmux session/window/pane hierarchy:
+
     >>> import daemux
     >>> d = daemux.start(cmd='yes', session='yes', window='yes', pane=-1)
     >>> d.stop()

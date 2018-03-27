@@ -6,6 +6,11 @@ doc:
 test:
 	coverage run --branch --omit '*libtmux*' -m doctest daemux/__init__.py
 
+clean:
+	make -C docs clean
+	coverage erase
+	tmux kill-session -t yes  # Created by the tests
+
 lint:
 	flake8 $$(find . -type f -name '*.py' -not -path './docs/*')
 
