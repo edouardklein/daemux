@@ -9,7 +9,8 @@ test:
 clean:
 	make -C docs clean
 	coverage erase
-	tmux kill-session -t yes  # Created by the tests
+	tmux kill-session -t daemux_test || true  # Created by the tests
+	tmux kill-session -t yes || true # Created by the tests
 
 lint:
 	flake8 $$(find . -type f -name '*.py' -not -path './docs/*')

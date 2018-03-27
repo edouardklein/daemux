@@ -31,7 +31,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.15'
+__version__ = '0.0.16'
 
 
 class Daemon:
@@ -149,10 +149,7 @@ class Daemon:
 
     def start(self, timeout=10):
         """Start the daemon."""
-        if self.status() == 'running':
-            raise RuntimeError('The shell is not ready to launch our daemon.\n'
-                               'Existing processes:\n'
-                               '{}'.format(self.pane_ps()))
+        self.wait_for_state('ready', timeout)
         if self.cmd is None:
             return self.restart()
 
