@@ -31,7 +31,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.16'
+__version__ = '0.0.17'
 
 
 class Daemon:
@@ -104,7 +104,13 @@ class Daemon:
                 self.window.split_window()
                 if layout is not None:
                     self.window.select_layout(layout)
-            self.pane = self.window.list_panes()[pane]
+            # Sorting because list_panes may not return the panes in the
+            # expected order (I expected chronological order),
+            # maybe because of the call to select_layout, which changes the
+            # order of the panes. We sort str(pane), which contains
+            # the pane number, which is always increasing and therefore the
+            # same as chronological order.
+            self.pane = sorted(self.window.list_panes(), key=str)[pane]
 
         if cmd is not None:
             self.pane.send_keys("# Pane {},"
