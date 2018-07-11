@@ -1,4 +1,4 @@
-'''Daemux lets you run daemons in a tmux pane.
+"""Daemux lets you run daemons in a tmux pane.
 
 That way, you wan write programs that launch long-running background
 tasks, and check these tasks' health by hand, relaunch them, etc. by
@@ -25,7 +25,7 @@ attaching to the corresponding pane in tmux.
 >>> yes2.status()
 'running'
 >>> yes.stop()
-'''
+"""
 
 import libtmux
 import subprocess
@@ -38,7 +38,7 @@ class Daemon:
     """Handle tmux session, window and pane to control the daemon."""
 
     def __init__(self, cmd, session=None, window=None, pane=None, layout=None):
-        '''Create or attach to a session/window/pane for command cmd.
+        """Create or attach to a session/window/pane for command cmd.
 
         Args:
             cmd: The command to run to start the daemon.
@@ -62,7 +62,7 @@ class Daemon:
                 panes will eventually make tmux fail, complaining that there
                 is not enough space left to create a new pane. Using the e.g.
                 'tiled' layout is a good way to delay this problem.
-        '''
+        """
         self.cmd = cmd
         if window is not None and session is None:
             raise ValueError("If window is set, session should be set.")
@@ -118,26 +118,26 @@ class Daemon:
                                                                  self.cmd))
 
     def pane_ps(self):
-        '''Return the ps output for processes running in our pane.'''
+        """Return the ps output for processes running in our pane."""
         return subprocess.check_output('ps -t {}'
                                        .format(self.pane['pane_tty']),
                                        shell=True).decode('utf8')
 
     def pane_output(self):
-        '''Return the contents of the pane.'''
-        # FIXME: -32000 should be chaged when tmux v2 becomes widly
+        """Return the contents of the pane."""
+        # FIXME: -32000 should be changed when tmux v2 becomes widely
         # available to just '-', meaning 'all history'.
         return '\n'.join(self.pane.cmd('capture-pane', '-p',
                                        '-S', '-32000').stdout)
 
     def status(self):
-        '''Return the putative status of the daemon.
+        """Return the putative status of the daemon.
 
         Return:
              'running' if more than one process appear to be running in
              the daemon's pane's tty
              'ready' if only one process is running in the daemon's pane's tty
-        '''
+        """
         # There is a header line
         nb_processes = len(self.pane_ps().strip().split('\n')) - 1
         if nb_processes > 1:
@@ -180,14 +180,14 @@ class Daemon:
                                    .format(state, self.pane_output()))
 
     def stop(self):
-        '''Send Ctrl-Cs to the pane the daemon is running on until it stops.'''
+        """Send Ctrl-Cs to the pane the daemon is running on until it stops."""
         self.pane.cmd('send-keys', 'C-c')
         self.wait_for_state('ready',
                             action=lambda: self.pane.cmd('send-keys', 'C-c'))
 
 
 def start(cmd, **kwargs):
-    '''Start a new daemon and return it.
+    """Start a new daemon and return it.
 
     The daemon is created with the arguments given to start.
     See :py:func:`Daemon.__init__` for details.
@@ -197,14 +197,14 @@ def start(cmd, **kwargs):
     >>> import daemux
     >>> d = daemux.start(cmd='yes', session='yes', window='yes', pane=-1)
     >>> d.stop()
-    '''
+    """
     answer = Daemon(cmd, **kwargs)
     answer.start()
     return answer
 
 
 def reattach(session, window, pane):
-    '''Return the Daemon Object tied to the specified tmux hierarchy.'''
+    """Returns the Daemon Object tied to the specified tmux hierarchy."""
     return Daemon(cmd=None, session=session, window=window, pane=pane)
 
 
