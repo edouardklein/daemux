@@ -31,7 +31,7 @@ import libtmux
 import subprocess
 import time
 
-__version__ = '0.0.17'
+__version__ = '0.1.0'
 
 
 class Daemon:
@@ -113,9 +113,12 @@ class Daemon:
             self.pane = sorted(self.window.list_panes(), key=str)[pane]
 
         if cmd is not None:
+            if 'daemux ready to run daemon ' in self.pane_output():
+                self.pane.cmd('respawn-pane', '-k')
+                self.pane = sorted(self.window.list_panes(), key=str)[pane]
             self.pane.send_keys("# Pane {},"
-                                " ready to run daemon {}".format(self.pane,
-                                                                 self.cmd))
+                                "daemux ready to run daemon"
+                                " {}".format(self.pane, self.cmd))
 
     def pane_ps(self):
         """Return the ps output for processes running in our pane."""
@@ -151,39 +154,47 @@ class Daemon:
         self.stop()
         self.pane.cmd('send-keys', 'Up')
         self.pane.enter()
-        self.wait_for_state('running', timeout)
+        self.wait_for_state('running', timeout=timeout)
 
     def start(self, timeout=10):
         """Start the daemon."""
-        self.wait_for_state('ready', timeout)
+        self.wait_for_state('ready', timeout=timeout)
         if self.cmd is None:
             return self.restart()
-
         self.pane.send_keys(self.cmd)
-        self.wait_for_state('running', timeout)
-
-    def wait_for_state(self, state, timeout=10, action=None):
-        '''Wait for timeout or for status to change to state before returning.
-
-        If action is specified, it is called every second while status is not
-        at state.
-        '''
-        start = time.time()
-        while self.status() != state:
-            if action is not None:
-                action()
-            time.sleep(1)
-            if time.time() - start > timeout:
-                raise RuntimeError("Could not get the daemon to switch to "
-                                   "state {}."
-                                   " Current output is:\n{}"
-                                   .format(state, self.pane_output()))
+        self.wait_for_state('running', timeout=timeout)
 
     def stop(self):
         """Send Ctrl-Cs to the pane the daemon is running on until it stops."""
         self.pane.cmd('send-keys', 'C-c')
-        self.wait_for_state('ready',
+        self.wait_for_state(state='ready',
                             action=lambda: self.pane.cmd('send-keys', 'C-c'))
+
+    def wait_for_state(self, state, action=None, timeout=10):
+        """Wait (until timeout) for status to change to the specified state
+        before returning.
+        If action is specified, it is called every second while status is not
+        at state.
+        """
+        _wait_for_condition(lambda: self.status() == state, action, timeout,
+                            lambda: RuntimeError("Could not get the daemon {} "
+                                                 "to switch to "
+                                                 "state {} (timeout)."
+                                                 " Current output is:\n{}"
+                                                 .format(self.cmd, state,
+                                                         self.pane_output())))
+
+    def wait_for_output(self, expected_output, action=None, timeout=10):
+        """Wait (until timeout) for expected output to appear on the pane
+        before returning.
+        If action is specified, it is called every second until the expected
+        output appears.
+        """
+        _wait_for_condition((lambda: expected_output in self.pane_output()),
+                            action, timeout,
+                            lambda: RuntimeError("Command {} did not launch "
+                                                 "properly (timeout).\n"
+                                                 .format(self.cmd)))
 
 
 def start(cmd, **kwargs):
@@ -201,6 +212,20 @@ def start(cmd, **kwargs):
     answer = Daemon(cmd, **kwargs)
     answer.start()
     return answer
+
+
+def _wait_for_condition(condition, action=None, timeout=10,
+                        exception=lambda: RuntimeError('Timeout while waiting'
+                                                       'for condition')):
+    """Wait until timeout for a given condition to be satisfied,
+    calling the optional action every second."""
+    start_time = time.time()
+    while not condition():
+        if action is not None:
+            action()
+        time.sleep(1)
+        if time.time() - start_time > timeout:
+            raise exception()
 
 
 def reattach(session, window, pane):
