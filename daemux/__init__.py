@@ -29,6 +29,9 @@ Daemux depends on Python, tmux, and libtmux.
 >>> yes.stop()
 """
 
+import os
+import shlex
+import shutil
 import subprocess
 import time
 
@@ -60,10 +63,29 @@ def _pane_tty_names(pane_tty):
     return [tty, pane_tty]
 
 
+def _sync_environment(session, environment):
+    """Update tmux session environment from the caller environment."""
+    for name, value in environment.items():
+        session.set_environment(name, value)
+
+
+def _command_with_env(cmd, environment):
+    """Return a shell command that launches ``cmd`` with an exact environment.
+    """
+    env_binary = shutil.which('env') or 'env'
+    sh_binary = shutil.which('sh') or 'sh'
+    command = [env_binary, '-i']
+    command.extend(f'{name}={value}'
+                   for name, value in sorted(environment.items()))
+    command.extend([sh_binary, '-lc', f'exec {cmd}'])
+    return ' '.join(shlex.quote(part) for part in command)
+
+
 class Daemon:
     """Handle tmux session, window and pane to control the daemon."""
 
-    def __init__(self, cmd, session=None, window=None, pane=None, layout=None):
+    def __init__(self, cmd, session=None, window=None, pane=None, layout=None,
+                 env=None):
         """Create or attach to a session/window/pane for command cmd.
 
         Args:
@@ -88,8 +110,12 @@ class Daemon:
                 panes will eventually make tmux fail, complaining that there
                 is not enough space left to create a new pane. Using the e.g.
                 'tiled' layout is a good way to delay this problem.
+
+            env: Exact environment mapping to use when launching `cmd`.
+                If None, the daemon is launched through the pane shell as-is.
         """
         self.cmd = cmd
+        self.env = dict(env) if env is not None else None
         if window is not None and session is None:
             raise ValueError("If window is set, session should be set.")
         if pane is not None and (window is None or session is None):
@@ -101,6 +127,7 @@ class Daemon:
             window = cmd.split()[0]
 
         self.server = libtmux.Server()
+        self.environment = dict(os.environ)
 
         self.session = _get_session(self.server, session)
         if not self.session:
@@ -108,12 +135,15 @@ class Daemon:
                 session_name=session,
                 attach=False,
                 window_name=window,
+                environment=self.environment,
             )
+        _sync_environment(self.session, self.environment)
 
         self.window = _get_window(self.session, window)
         if not self.window:
             self.window = self.session.new_window(window_name=window,
-                                                  attach=False)
+                                                  attach=False,
+                                                  environment=self.environment)
             if pane is not None and pane != 0:
                 raise ValueError('pane was specified as {}, but window {}'
                                  ' did not exist (it does now). Legal values'
@@ -123,13 +153,15 @@ class Daemon:
                 pane = 0  # So that we wont split the window we just created
 
         if pane is None:  # Creation of a new pane
-            self.pane = self.window.split(attach=False)
+            self.pane = self.window.split(attach=False,
+                                          environment=self.environment)
             if layout is not None:
                 self.window.select_layout(layout)
         else:
             while max(-pane - 1, pane) >= len(self.window.panes):
                 # Create as many panes as necessary to honor request
-                self.window.split(attach=False)
+                self.window.split(attach=False,
+                                  environment=self.environment)
                 if layout is not None:
                     self.window.select_layout(layout)
             # Pane ordering can change after layout changes.
@@ -192,7 +224,10 @@ class Daemon:
         self.wait_for_state('ready', timeout=timeout)
         if self.cmd is None:
             return self.restart()
-        self.pane.send_keys(self.cmd)
+        command = self.cmd
+        if self.env is not None:
+            command = _command_with_env(self.cmd, self.env)
+        self.pane.send_keys(command)
         self.wait_for_state('running', timeout=timeout)
 
     def stop(self):
