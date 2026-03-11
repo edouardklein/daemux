@@ -10,18 +10,20 @@ Daemux uses tmux to let you start, stop, restart and check daemons.
 Installation
 ==============
 
-To install use pip:
+To install from PyPI:
 
-    $ pip3 install daemux
+.. code-block:: sh
+
+    python3 -m pip install daemux
 
 
 Or clone the repo:
 
-    $ git clone https://github.com/edouardklein/daemux
+.. code-block:: sh
 
-    $ python3 setup.py install
-    
-    
+    git clone https://github.com/edouardklein/daemux
+    cd daemux
+    python3 -m pip install .
 
 Usage
 =======
@@ -34,20 +36,32 @@ Read the documentation https://daemux.readthedocs.io/ to understand how to use d
 In the cloned repo
 +++++++++++++++++++++
 
+For a reproducible Guix environment with the current supported dependency set:
+
+.. code-block:: sh
+
+    guix shell python python-libtmux python-pytest python-coverage python-sphinx python-flake8 tmux -- make test
+
 Helper targets
 >>>>>>>>>>>>>>>>
 
 To build the documentation, run:
 
-    $ make doc
+.. code-block:: sh
+
+    make doc
     
 To run the test, run:
 
-    $ make test
+.. code-block:: sh
+
+    make test
 
 To check the code's superficial cleanliness run:
 
-    $ make lint
+.. code-block:: sh
+
+    make lint
 
 Dev cycle
 >>>>>>>>>>>
@@ -95,11 +109,10 @@ When this branch is complete:
         
 - If you are the maintainer, upload the code to PyPI
 
-       $ python3 setup.py sdist
+       $ python3 -m build
 
        $ twine upload dist/* --skip-existing
         
 - If you are the maintainer, check that the docs are updated <http://daemux.readthedocs.io/en/latest/>
 
 - If you are the maintainer or the devops guy, deploy the new code to all relevant machines
-

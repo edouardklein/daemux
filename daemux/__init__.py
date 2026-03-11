@@ -4,6 +4,8 @@ That way, you wan write programs that launch long-running background
 tasks, and check these tasks' health by hand, relaunch them, etc. by
 attaching to the corresponding pane in tmux.
 
+Daemux depends on Python, tmux, and libtmux.
+
 >>> import daemux
 >>> # session, window, and pane are implicitely deduced if
 >>> # not explicitely specified
@@ -32,6 +34,21 @@ import subprocess
 import time
 
 __version__ = '0.1.0'
+
+
+def _get_session(server, session_name):
+    """Return a session by name or ``None`` if it does not exist."""
+    return server.sessions.get(default=None, session_name=session_name)
+
+
+def _get_window(session, window_name):
+    """Return a window by name or ``None`` if it does not exist."""
+    return session.windows.get(default=None, window_name=window_name)
+
+
+def _sorted_panes(window):
+    """Return panes ordered by tmux pane index."""
+    return sorted(window.panes, key=lambda pane: int(pane.pane_index))
 
 
 class Daemon:
@@ -76,16 +93,18 @@ class Daemon:
 
         self.server = libtmux.Server()
 
-        self.session = self.server.find_where({'session_name': session})
+        self.session = _get_session(self.server, session)
         if not self.session:
-            self.session = self.server.new_session(session)
-            # Rename the implicitely created window so that it can be found
-            # on next line
-            self.session.list_windows()[0].rename_window(window)
+            self.session = self.server.new_session(
+                session_name=session,
+                attach=False,
+                window_name=window,
+            )
 
-        self.window = self.session.find_where({'window_name': window})
+        self.window = _get_window(self.session, window)
         if not self.window:
-            self.window = self.session.new_window(window)
+            self.window = self.session.new_window(window_name=window,
+                                                  attach=False)
             if pane is not None and pane != 0:
                 raise ValueError('pane was specified as {}, but window {}'
                                  ' did not exist (it does now). Legal values'
@@ -95,27 +114,24 @@ class Daemon:
                 pane = 0  # So that we wont split the window we just created
 
         if pane is None:  # Creation of a new pane
-            self.pane = self.window.split_window()
+            self.pane = self.window.split(attach=False)
             if layout is not None:
                 self.window.select_layout(layout)
         else:
-            while max(-pane - 1, pane) >= len(self.window.list_panes()):
+            while max(-pane - 1, pane) >= len(self.window.panes):
                 # Create as many panes as necessary to honor request
-                self.window.split_window()
+                self.window.split(attach=False)
                 if layout is not None:
                     self.window.select_layout(layout)
-            # Sorting because list_panes may not return the panes in the
-            # expected order (I expected chronological order),
-            # maybe because of the call to select_layout, which changes the
-            # order of the panes. We sort str(pane), which contains
-            # the pane number, which is always increasing and therefore the
-            # same as chronological order.
-            self.pane = sorted(self.window.list_panes(), key=str)[pane]
+            # Pane ordering can change after layout changes.
+            # Tmux pane indexes recover the requested pane.
+            self.pane = _sorted_panes(self.window)[pane]
 
         if cmd is not None:
             if 'daemux ready to run daemon ' in self.pane_output():
+                pane_index = int(self.pane.pane_index)
                 self.pane.cmd('respawn-pane', '-k')
-                self.pane = sorted(self.window.list_panes(), key=str)[pane]
+                self.pane = _sorted_panes(self.window)[pane_index]
             self.pane.send_keys("# Pane {},"
                                 "daemux ready to run daemon"
                                 " {}".format(self.pane, self.cmd))
@@ -123,7 +139,7 @@ class Daemon:
     def pane_ps(self):
         """Return the ps output for processes running in our pane."""
         return subprocess.check_output('ps -t {}'
-                                       .format(self.pane['pane_tty']),
+                                       .format(self.pane.pane_tty),
                                        shell=True).decode('utf8')
 
     def pane_output(self):

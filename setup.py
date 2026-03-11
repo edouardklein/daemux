@@ -1,18 +1,19 @@
-from setuptools import setup, find_packages
-from codecs import open
-from os import path
+from pathlib import Path
+
+from setuptools import find_packages, setup
 
 __version__ = '0.1.0'
 
-here = path.abspath(path.dirname(__file__))
+here = Path(__file__).resolve().parent
 
 # Get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+long_description = (here / 'README.rst').read_text(encoding='utf-8')
 
 
-install_requires = ['sphinx', 'flake8', 'libtmux', 'coverage']
-dependency_links = []
+install_requires = ['libtmux']
+extras_require = {
+    'dev': ['coverage', 'flake8', 'pytest', 'sphinx'],
+}
 
 setup(
     name='daemux',
@@ -20,6 +21,7 @@ setup(
     description='Daemux uses tmux to let you start, stop, restart'
     ' and check daemons.',
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     url='https://github.com/edouardklein/daemux',
     download_url='https://github.com/edouardklein/daemux/tarball/' +
     __version__,
@@ -41,7 +43,7 @@ setup(
     include_package_data=True,
     author='Edouard Klein',
     install_requires=install_requires,
-    dependency_links=dependency_links,
+    extras_require=extras_require,
     author_email='myfirstnamemylastname@mailproviderthatstartswithagfromgoogle'
     '.whyshouldibespammed.letmeinputhateveriwantinthisfieldffs.com'
 )
