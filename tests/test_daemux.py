@@ -1,4 +1,6 @@
+import subprocess
 import uuid
+from types import SimpleNamespace
 
 import libtmux
 
@@ -61,3 +63,41 @@ def test_reuses_existing_ready_pane():
         assert second.status() == "ready"
     finally:
         _kill_session(session_name)
+
+
+def test_pane_ps_uses_tty_name_without_dev_prefix(monkeypatch):
+    daemon = object.__new__(daemux.Daemon)
+    daemon.pane = SimpleNamespace(pane_tty='/dev/pts/7')
+    calls = []
+
+    def fake_check_output(cmd, stderr=None):
+        calls.append(cmd)
+        assert stderr == subprocess.STDOUT
+        if cmd == ['ps', '-t', 'pts/7']:
+            return b'PID TTY          TIME CMD\n1 pts/7 00:00:00 sh\n'
+        raise AssertionError(cmd)
+
+    monkeypatch.setattr(daemux.subprocess, 'check_output', fake_check_output)
+
+    assert 'pts/7' in daemon.pane_ps()
+    assert calls == [['ps', '-t', 'pts/7']]
+
+
+def test_pane_ps_falls_back_to_full_tty_name(monkeypatch):
+    daemon = object.__new__(daemux.Daemon)
+    daemon.pane = SimpleNamespace(pane_tty='/dev/pts/8')
+    calls = []
+
+    def fake_check_output(cmd, stderr=None):
+        calls.append(cmd)
+        assert stderr == subprocess.STDOUT
+        if cmd == ['ps', '-t', 'pts/8']:
+            raise subprocess.CalledProcessError(1, cmd, output=b'bad tty\n')
+        if cmd == ['ps', '-t', '/dev/pts/8']:
+            return b'PID TTY          TIME CMD\n1 pts/8 00:00:00 sh\n'
+        raise AssertionError(cmd)
+
+    monkeypatch.setattr(daemux.subprocess, 'check_output', fake_check_output)
+
+    assert 'pts/8' in daemon.pane_ps()
+    assert calls == [['ps', '-t', 'pts/8'], ['ps', '-t', '/dev/pts/8']]

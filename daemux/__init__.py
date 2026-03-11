@@ -29,11 +29,12 @@ Daemux depends on Python, tmux, and libtmux.
 >>> yes.stop()
 """
 
-import libtmux
 import subprocess
 import time
 
-__version__ = '0.1.0'
+import libtmux
+
+__version__ = '0.1.2'
 
 
 def _get_session(server, session_name):
@@ -49,6 +50,14 @@ def _get_window(session, window_name):
 def _sorted_panes(window):
     """Return panes ordered by tmux pane index."""
     return sorted(window.panes, key=lambda pane: int(pane.pane_index))
+
+
+def _pane_tty_names(pane_tty):
+    """Return tty names to try with ``ps -t`` in portability order."""
+    tty = pane_tty.removeprefix('/dev/')
+    if tty == pane_tty:
+        return [tty]
+    return [tty, pane_tty]
 
 
 class Daemon:
@@ -138,9 +147,15 @@ class Daemon:
 
     def pane_ps(self):
         """Return the ps output for processes running in our pane."""
-        return subprocess.check_output('ps -t {}'
-                                       .format(self.pane.pane_tty),
-                                       shell=True).decode('utf8')
+        errors = []
+        for tty in _pane_tty_names(self.pane.pane_tty):
+            try:
+                return subprocess.check_output(['ps', '-t', tty],
+                                               stderr=subprocess.STDOUT)\
+                    .decode('utf8')
+            except subprocess.CalledProcessError as exc:
+                errors.append(exc)
+        raise errors[-1]
 
     def pane_output(self):
         """Return the contents of the pane."""
