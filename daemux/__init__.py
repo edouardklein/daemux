@@ -37,7 +37,7 @@ import time
 
 import libtmux
 
-__version__ = '0.1.2'
+__version__ = '0.2.1'
 
 
 def _get_session(server, session_name):
@@ -77,7 +77,7 @@ def _command_with_env(cmd, environment):
     command = [env_binary, '-i']
     command.extend(f'{name}={value}'
                    for name, value in sorted(environment.items()))
-    command.extend([sh_binary, '-lc', f'exec {cmd}'])
+    command.extend([sh_binary, '-c', f'exec {cmd}'])
     return ' '.join(shlex.quote(part) for part in command)
 
 

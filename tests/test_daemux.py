@@ -129,6 +129,8 @@ def test_start_env_survives_interactive_bash_resetting_path(
     probe.chmod(0o755)
     (home / '.bashrc').write_text(f'export PATH={stale_bin}\n',
                                   encoding='utf-8')
+    (home / '.profile').write_text(f'export PATH={stale_bin}\n',
+                                   encoding='utf-8')
 
     good_env = {
         'HOME': str(home),
