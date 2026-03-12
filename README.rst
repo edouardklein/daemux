@@ -40,7 +40,10 @@ For a reproducible Guix environment with the current supported dependency set:
 
 .. code-block:: sh
 
-    guix shell python python-libtmux python-pytest python-coverage python-sphinx python-flake8 tmux -- make test
+    guix shell python python-libtmux python-pytest python-coverage python-sphinx python-flake8 tmux s6 -- make test
+
+This shell includes everything needed for all current daemux features,
+including exact ``env=...`` launches via ``s6-envdir``.
 
 Helper targets
 >>>>>>>>>>>>>>>>

@@ -1,5 +1,5 @@
 PYTHON ?= python3
-GUIX_SHELL = guix shell bash python python-libtmux python-pytest python-coverage python-sphinx python-flake8 tmux --
+GUIX_SHELL = guix shell bash python python-libtmux python-pytest python-coverage python-sphinx python-flake8 tmux s6 --
 
 all: doc lint test
 

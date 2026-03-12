@@ -106,6 +106,62 @@ def test_pane_ps_falls_back_to_full_tty_name(monkeypatch):
     assert calls == [['ps', '-t', 'pts/8'], ['ps', '-t', '/dev/pts/8']]
 
 
+def test_pane_output_keeps_lines_beyond_32000_history(tmp_path, monkeypatch):
+    socket_name = f"daemux-history-{uuid.uuid4().hex[:8]}"
+    session_name = f"daemux-test-history-{uuid.uuid4().hex[:8]}"
+    python3 = shutil.which('python3')
+    assert python3 is not None
+
+    writer = Path(tmp_path) / 'history-writer.py'
+    writer.write_text(
+        'import time\n'
+        'for i in range(33050):\n'
+        "    print(f'line-{i:05d}')\n"
+        'time.sleep(30)\n',
+        encoding='utf-8',
+    )
+
+    tmux_conf = Path(tmp_path) / 'tmux.conf'
+    tmux_conf.write_text('set -g history-limit 40000\n', encoding='utf-8')
+    subprocess.run(
+        ['tmux', '-L', socket_name, '-f', str(tmux_conf),
+         'new-session', '-d', '-s', session_name, '-n', 'main'],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    original_server = libtmux.Server
+    server = original_server(socket_name=socket_name)
+
+    def server_factory(*args, **kwargs):
+        kwargs.setdefault('socket_name', socket_name)
+        return original_server(*args, **kwargs)
+
+    monkeypatch.setattr(daemux.libtmux, 'Server', server_factory)
+
+    try:
+        daemon = daemux.Daemon(f'{python3} {writer}',
+                               session=session_name,
+                               window='main',
+                               pane=0)
+        daemon.start(timeout=10)
+        daemon.wait_for_output('line-33049', timeout=20)
+        output = daemon.pane_output()
+        assert 'line-00000' in output
+        assert 'line-33049' in output
+        daemon.stop()
+    finally:
+        session = original_server(socket_name=socket_name).sessions.get(
+            default=None,
+            session_name=session_name,
+        )
+        if session is not None:
+            session.kill()
+        server.cmd('kill-server')
+
+
 def test_start_env_survives_interactive_bash_resetting_path(
         monkeypatch,
         tmp_path):
@@ -173,3 +229,26 @@ def test_start_env_survives_interactive_bash_resetting_path(
         if session is not None:
             session.kill()
         server.cmd('kill-server')
+
+
+def test_start_supports_large_exact_environment():
+    session_name = f"daemux-test-limit-{uuid.uuid4().hex[:8]}"
+    sleep = shutil.which('sleep')
+    assert sleep is not None
+    environment = {'BIG': 'x' * 20000}
+    envdir = f'/tmp/daemux-envdir-{uuid.uuid4().hex[:8]}'
+    command = daemux._command_with_env(f'{sleep} 30',
+                                       envdir)
+    assert len(command) < 1024
+
+    try:
+        daemon = daemux.Daemon(f'{sleep} 30',
+                               session=session_name,
+                               window='main',
+                               pane=0,
+                               env=environment)
+        daemon.start(timeout=3)
+        assert daemon.status() == 'running'
+        daemon.stop()
+    finally:
+        _kill_session(session_name)
