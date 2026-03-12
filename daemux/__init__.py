@@ -91,7 +91,7 @@ import time
 
 import libtmux
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 
 def _get_session(server, session_name):
