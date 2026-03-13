@@ -31,6 +31,7 @@ Basic usage
 >>> yes2.status()
 'running'
 >>> yes.stop()
+>>> yes.session.kill()
 
 Environment passing
 -------------------
@@ -79,7 +80,18 @@ With ``env=``, the wrapped command sees the variables you passed:
 >>> d.pane_output().splitlines()[-1]
 'maybe'
 >>> d.stop()
->>> yes.session.kill()
+>>> d.session.kill()
+>>> # env= also honors SHELL. Complex shell snippets should disable the
+>>> # wrapper's automatic exec and provide their own exec at the end.
+>>> bash = shutil.which("bash")
+>>> yes_binary = shutil.which("yes")
+>>> d = daemux.start(f'a=(bash); exec {yes_binary} "${{a[0]}}"',
+...                   env={"SHELL": bash},
+...                   exec=False)
+>>> d.pane_output().splitlines()[-2]
+'bash'
+>>> d.stop()
+>>> d.session.kill()
 """
 
 import os
@@ -91,7 +103,7 @@ import time
 
 import libtmux
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 
 def _get_session(server, session_name):
@@ -117,11 +129,28 @@ def _pane_tty_names(pane_tty):
     return [tty, pane_tty]
 
 
-def _wrapped_command(cmd, sh_binary='sh'):
+def _sanitize_tmux_name(name):
+    """Return a tmux-safe name derived from a command token."""
+    allowed = set('abcdefghijklmnopqrstuvwxyz'
+                  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                  '0123456789'
+                  '-_')
+    sanitized = ''.join(char for char in name if char in allowed)
+    return sanitized or 'daemon'
+
+
+def _derived_tmux_name(cmd):
+    """Return the default tmux session/window name for ``cmd``."""
+    return _sanitize_tmux_name(cmd.split()[0])
+
+
+def _wrapped_command(cmd, sh_binary='/bin/sh', do_exec=True):
     """Return a shell-wrapped command string."""
+    if do_exec:
+        cmd = f'exec {cmd}'
     return ' '.join(shlex.quote(part) for part in [sh_binary,
                                                    '-c',
-                                                   f'exec {cmd}'])
+                                                   cmd])
 
 
 def _write_envdir(path, environment):
@@ -168,7 +197,7 @@ class Daemon:
     """Handle tmux session, window and pane to control the daemon."""
 
     def __init__(self, cmd, session=None, window=None, pane=None, layout=None,
-                 env=None, _wrapped_env=False):
+                 env=None, exec=True, _wrapped_env=False):
         """Create or attach to a session/window/pane for command cmd.
 
         Args:
@@ -196,6 +225,10 @@ class Daemon:
 
             env: Exact environment mapping to use when launching `cmd`.
                 If None, the daemon is launched through the pane shell as-is.
+
+            exec: Whether daemux should prepend ``exec`` inside the shell
+                wrapper it uses for ``env=`` launches. Set to False for
+                complex shell snippets that provide their own final exec.
         """
         if window is not None and session is None:
             raise ValueError("If window is set, session should be set.")
@@ -204,12 +237,15 @@ class Daemon:
                              'window and session should be set.')
         if cmd is not None:
             if session is None:
-                session = cmd.split()[0]
+                session = _derived_tmux_name(cmd)
             if window is None:
-                window = cmd.split()[0]
+                window = _derived_tmux_name(cmd)
 
         if cmd is not None and env is not None:
-            self.__init__(_command_with_env(_wrapped_command(cmd),
+            shell_binary = env.get('SHELL', '/bin/sh')
+            self.__init__(_command_with_env(_wrapped_command(cmd,
+                                                             sh_binary=shell_binary,
+                                                             do_exec=exec),
                                             _new_envdir(env)),
                           session=session,
                           window=window,
